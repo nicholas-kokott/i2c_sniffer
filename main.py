@@ -1,5 +1,6 @@
 import smbus
 import csv
+import time
 from datetime import datetime
 
 def process_location(data):
@@ -33,7 +34,7 @@ def process_touch_type(data):
     
 
 def main():
-    file_name = f"csvs/touches_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    file_name = f"csvs/touches_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
 
     header = ["Time", "TouchFound", "TouchType", "LocationX", "LocationY", "GeneralLocation", "TouchCount"]
 
@@ -41,30 +42,32 @@ def main():
         writer = csv.writer(f)
         writer.writerow(header)
 
-    bus = smbus.SMBus(1)
-    device_addr = 0x4B
-    register = 0x05
-    num_bytes = 16
+        bus = smbus.SMBus(1)
+        device_addr = 0x4B
+        register = 0x05
+        num_bytes = 16
 
-    x_value_reading = -1
-    y_value_reading = -1
-    region = "NoTouch"
-    touch_type = "N/A"
-    touch_count = 0
+        x_value_reading = -1
+        y_value_reading = -1
+        region = "NoTouch"
+        touch_type = "N/A"
+        touch_count = 0
 
-    while(True):
-        data = bus.read_i2c_block_data(device_addr, register, num_bytes)
+        while(True):
+            data = bus.read_i2c_block_data(device_addr, register, num_bytes)
 
-        if data[2] == 0x64 and data[3] != 0x03:
-            touch_type = process_touch_type(data)
-            x_value_reading, y_value_reading, region = process_location(data)
-            touch_count += 1
-            row = [datetime.now().strftime('%Y-%m-%d_%H-%M-%S'), "TouchDetected", touch_type, x_value_reading, y_value_reading, region, touch_count]
-            writer.writerow(row)
-        else:
-            x_value_reading = -1
-            y_value_reading = -1
-            touch_type = "N/A"
+            if data[2] == 0x64 and data[3] != 0x03:
+                touch_type = process_touch_type(data)
+                x_value_reading, y_value_reading, region = process_location(data)
+                touch_count += 1
+                row = [datetime.now().strftime('%Y-%m-%d_%H-%M-%S'), "TouchDetected", touch_type, x_value_reading, y_value_reading, region, touch_count]
+                writer.writerow(row)
+            else:
+                x_value_reading = -1
+                y_value_reading = -1
+                touch_type = "N/A"
+
+            time.sleep(1)
 
 if __name__ == "__main__":
     main()
